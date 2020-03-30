@@ -12,7 +12,7 @@
 	<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" crossorigin="">
 	
 	<style>
-		#mapid { height: 500px;width: 600px;display:block;margin: auto }
+		#mapid { height: 600px;width: 800px;display:block;margin: auto }
 		.kecamatanLabel {
 			background: transparent;
 			border: 0;
@@ -24,7 +24,7 @@
 			border-radius: 100%;
 			padding: 5px;
 			display:inline-block;
-			margin: 5px;
+			margin: 1px;
 			min-height: 15px;
 			min-width: 15px;
 			color: #fff;
@@ -55,6 +55,7 @@
 		data = await data.json()
 		return data
 	} 
+
 	function getColor(d) {
 		color = "";
 		if(d.CONFIRM > 0){
@@ -66,6 +67,7 @@
 		}
 		return color
 	}
+
 	function style(feature) {
 	    return {
 	        fillColor: getColor(feature.properties.Covid),
@@ -77,32 +79,30 @@
 	    };
 	}
 
-	function pointToLayer(geoJsonPoint, latlng) {
-		console.log(geoJsonPoint)
-	    return L.marker(latlng);
-	}
-
 
 	let setup = async() => {
 		var mymap = L.map('mapid').setView([-8.0735,111.9164], 12);
 		
 		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-		    maxZoom: 12,
-		    minZoom: 12,
+		    maxZoom: 12.5,
+		    minZoom: 11.5,
 		    id: 'mapbox.streets',
 		    accessToken: 'pk.eyJ1IjoiZGVmcmluZHIiLCJhIjoiY2s4ZTN5ZjM0MDFrNzNsdG1tNXk2M2dlMSJ9.YXJM0PTu8PSsCCtYVjJNmw'
 		}).addTo(mymap);
 
 		var geojson = L.geoJSON(await getData(), {
 			style: style,
-			pointToLayer: pointToLayer,
 			onEachFeature: function (feature, layer) {
 
 				let pos = feature.geometry.coordinates[0][0][0]
 
 				layer.bindTooltip(function (layer) {
+					id = ""
+					if(layer.feature.properties.KECAMATAN == "TANGGUNGGUNUNG") id = "specialcase";
+
+
 					layout = `
-						<b>${layer.feature.properties.KECAMATAN} </b> <br>
+						<b id="${id}">${layer.feature.properties.KECAMATAN} </b> <br>
 						<div class="circle blue">
 							<span>${layer.feature.properties.Covid.ODP.toString()} </span>
 						</div>
@@ -122,12 +122,15 @@
 				// layer.circleMarker(pos,{icon:myIcon})
 
 			}
-		}).bindTooltip(function (layer) {
+		}).bindPopup(function (layer) {
 			layout = `
-				<b> KECAMATAN ${layer.feature.properties.KECAMATAN.toString()} <br> </b>
+				<b style="font-size:14px;"> KECAMATAN ${layer.feature.properties.KECAMATAN} <br> </b>
 				OPD :  ${layer.feature.properties.Covid.ODP.toString()} <br>
 				PDP :  ${layer.feature.properties.Covid.PDP.toString()} <br>
 				CONFIRM :  ${layer.feature.properties.Covid.CONFIRM.toString()} <br>
+				<hr>
+				SEMBUH :  ${layer.feature.properties.Covid.PDP.toString()} <br>
+				MENINGGAL :  ${layer.feature.properties.Covid.CONFIRM.toString()} <br>
 			`;
 
 			return layout
@@ -137,7 +140,13 @@
 
 	}
 
-	setup();
+	let main = async() => {
+		await setup();
+		document.querySelector("#specialcase").parentNode.style.transform = "translate3d(190px, 719px, 0px)"
+	}
+
+	main();
+
 	 </script>
 </body>
 </html>
