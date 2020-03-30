@@ -8,12 +8,42 @@
 
 	<!-- css -->
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+	
+	<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" crossorigin="">
+	
 	<style>
 		#mapid { height: 500px;width: 600px;display:block;margin: auto }
+		.kecamatanLabel {
+			background: transparent;
+			border: 0;
+			box-shadow: none;
+			translate3d(80px, 819px, 0px) translate(10px, -100px)!important
+		}
+
+		.circle {
+			border-radius: 100%;
+			padding: 5px;
+			display:inline-block;
+			margin: 5px;
+			min-height: 15px;
+			min-width: 15px;
+			color: #fff;
+			position : relative;
+			text-align: center;
+		}
+		.blue {
+			background-color: rgba(123,178,235,.9);
+		}
+		.orange {
+			background-color: rgba(195,178,45,.9);
+		}
+		.red {
+			background-color: rgba(235,123,108,.9);
+		}
 	</style>
 	<!-- js -->
 	<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
-	<!-- <script src="leaflet.ajax.min.js"></script> -->
+	<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" crossorigin=""></script>
 
 </head>
 <body>
@@ -30,7 +60,7 @@
 		if(d.CONFIRM > 0){
 			color = "#FEA292"
 		}else if(d.PDP > 0) {
-			color = "#FEDEAE"
+			color = "#EEEEAE"
 		}else if(d.ODP > 0){
 			color = "#9DADFE"
 		}
@@ -40,31 +70,59 @@
 	    return {
 	        fillColor: getColor(feature.properties.Covid),
 	        weight: 2,
-	        opacity: 1,
+	        opacity: .7,
 	        color: 'white',
 	        dashArray: '1',
 	        fillOpacity: 1
 	    };
 	}
+
+	function pointToLayer(geoJsonPoint, latlng) {
+		console.log(geoJsonPoint)
+	    return L.marker(latlng);
+	}
+
+
 	let setup = async() => {
-		var mymap = L.map('mapid').setView([-8.0735,111.9164], 10.5566);
+		var mymap = L.map('mapid').setView([-8.0735,111.9164], 12);
+		
 		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-		    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-		    maxZoom: 14,
+		    maxZoom: 12,
+		    minZoom: 12,
 		    id: 'mapbox.streets',
 		    accessToken: 'pk.eyJ1IjoiZGVmcmluZHIiLCJhIjoiY2s4ZTN5ZjM0MDFrNzNsdG1tNXk2M2dlMSJ9.YXJM0PTu8PSsCCtYVjJNmw'
 		}).addTo(mymap);
 
-		
-		// L.geoJSON( await getData() ).addTo(mymap);
-		L.geoJSON(await getData(), {
-		    style: style,
-		    pointToLayer: function (feature, latlng) {
-		    	console.log(latlng)
-	            return L.marker(latlng, {text: feature.properties.KECAMATAN});
-	    	},
-		}).bindPopup(function (layer) {
+		var geojson = L.geoJSON(await getData(), {
+			style: style,
+			pointToLayer: pointToLayer,
+			onEachFeature: function (feature, layer) {
 
+				let pos = feature.geometry.coordinates[0][0][0]
+
+				layer.bindTooltip(function (layer) {
+					layout = `
+						<b>${layer.feature.properties.KECAMATAN} </b> <br>
+						<div class="circle blue">
+							<span>${layer.feature.properties.Covid.ODP.toString()} </span>
+						</div>
+						<div class="circle orange">
+							<span>${layer.feature.properties.Covid.PDP.toString()} </span>
+						</div>
+						<div class="circle red">
+							<span>${layer.feature.properties.Covid.CONFIRM.toString()} </span>
+						</div>
+					`;
+					return layout
+				},{permanent: true,direction: "center", className: "kecamatanLabel"}).openTooltip()
+
+				var myIcon = L.divIcon({html: feature.properties.ODP});
+
+				console.log(layer)
+				// layer.circleMarker(pos,{icon:myIcon})
+
+			}
+		}).bindTooltip(function (layer) {
 			layout = `
 				<b> KECAMATAN ${layer.feature.properties.KECAMATAN.toString()} <br> </b>
 				OPD :  ${layer.feature.properties.Covid.ODP.toString()} <br>
@@ -72,32 +130,14 @@
 				CONFIRM :  ${layer.feature.properties.Covid.CONFIRM.toString()} <br>
 			`;
 
-		    return layout
+			return layout
 		}).addTo(mymap);
+		
+		mymap.fitBounds(geojson.getBounds());
+
 	}
 
 	setup();
-
-
-	// var geojsonLayer = new L.GeoJSON.AJAX("data_wilayah.json");
-	// geojsonLayer.addTo(mymap);
-
-
-
-	// L.marker([111.4623,-7.8711]).addTo(mymap)
-	// 	.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
-
-	// var popup = L.popup();
-
-	// function onMapClick(e) {
-	// 	popup
-	// 		.setLatLng(e.latlng)
-	// 		.setContent("You clicked the map at " + e.latlng.toString())
-	// 		.openOn(mymap);
-	// }
-
-	// mymap.on('click', onMapClick);
-
 	 </script>
 </body>
 </html>
