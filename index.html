@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+
+	<!-- css -->
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+	<style>
+		#mapid { height: 500px;width: 600px;display:block;margin: auto }
+	</style>
+	<!-- js -->
+	<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js" integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew==" crossorigin=""></script>
+	<!-- <script src="leaflet.ajax.min.js"></script> -->
+
+</head>
+<body>
+	 <div id="mapid"></div>
+	 <script>
+
+	let getData = async() => {
+		data = await fetch("data_wilayah.json")
+		data = await data.json()
+		return data
+	} 
+	function getColor(d) {
+		color = "";
+		if(d.CONFIRM > 0){
+			color = "#FEA292"
+		}else if(d.PDP > 0) {
+			color = "#FEDEAE"
+		}else if(d.ODP > 0){
+			color = "#9DADFE"
+		}
+		return color
+	}
+	function style(feature) {
+	    return {
+	        fillColor: getColor(feature.properties.Covid),
+	        weight: 2,
+	        opacity: 1,
+	        color: 'white',
+	        dashArray: '1',
+	        fillOpacity: 1
+	    };
+	}
+	let setup = async() => {
+		var mymap = L.map('mapid').setView([-8.0735,111.9164], 10.5566);
+		L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+		    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+		    maxZoom: 14,
+		    id: 'mapbox.streets',
+		    accessToken: 'pk.eyJ1IjoiZGVmcmluZHIiLCJhIjoiY2s4ZTN5ZjM0MDFrNzNsdG1tNXk2M2dlMSJ9.YXJM0PTu8PSsCCtYVjJNmw'
+		}).addTo(mymap);
+
+		
+		// L.geoJSON( await getData() ).addTo(mymap);
+		L.geoJSON(await getData(), {
+		    style: style,
+		    pointToLayer: function (feature, latlng) {
+		    	console.log(latlng)
+	            return L.marker(latlng, {text: feature.properties.KECAMATAN});
+	    	},
+		}).bindPopup(function (layer) {
+
+			layout = `
+				<b> KECAMATAN ${layer.feature.properties.KECAMATAN.toString()} <br> </b>
+				OPD :  ${layer.feature.properties.Covid.ODP.toString()} <br>
+				PDP :  ${layer.feature.properties.Covid.PDP.toString()} <br>
+				CONFIRM :  ${layer.feature.properties.Covid.CONFIRM.toString()} <br>
+			`;
+
+		    return layout
+		}).addTo(mymap);
+	}
+
+	setup();
+
+
+	// var geojsonLayer = new L.GeoJSON.AJAX("data_wilayah.json");
+	// geojsonLayer.addTo(mymap);
+
+
+
+	// L.marker([111.4623,-7.8711]).addTo(mymap)
+	// 	.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+
+	// var popup = L.popup();
+
+	// function onMapClick(e) {
+	// 	popup
+	// 		.setLatLng(e.latlng)
+	// 		.setContent("You clicked the map at " + e.latlng.toString())
+	// 		.openOn(mymap);
+	// }
+
+	// mymap.on('click', onMapClick);
+
+	 </script>
+</body>
+</html>
